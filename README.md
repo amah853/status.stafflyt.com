@@ -9,7 +9,7 @@ This repository contains both the status monitoring system (using Upptime for ch
 ## Features
 
 - 🎨 **Modern Design** - Matches Stafflyt's brand and design language perfectly
-- 📊 **Real-time Monitoring** - Up-to-date service status information  
+- 📊 **Real-time Monitoring** - Up-to-date service status information
 - 📱 **Responsive** - Works seamlessly on all devices (mobile, tablet, desktop)
 - ⚡ **Fast** - Built with Next.js for optimal performance
 - 🎯 **Accessible** - WCAG compliant design with semantic HTML
@@ -19,12 +19,14 @@ This repository contains both the status monitoring system (using Upptime for ch
 ## Technologies
 
 ### Frontend
+
 - **Next.js 15** - React framework for production
 - **TypeScript** - Type-safe development
 - **Tailwind CSS** - Utility-first styling
 - **Lucide React** - Beautiful SVG icons
 
 ### Monitoring
+
 - **Upptime** - GitHub Actions-powered uptime monitoring
 - **GitHub Pages** - Free hosting for generated data
 
@@ -38,11 +40,13 @@ This repository contains both the status monitoring system (using Upptime for ch
 ### Installation
 
 1. Install dependencies:
+
 ```bash
 npm install
 ```
 
 2. Run the development server:
+
 ```bash
 npm run dev
 ```
