@@ -45,7 +45,7 @@ export default async function IncidentDetailPage({
                   className="h-5 w-5"
                 />
               </div>
-              <span className="text-lg font-bold text-dark">Status</span>
+              <span className="text-lg font-bold text-dark">Stafflyt Status</span>
             </Link>
           </div>
         </div>

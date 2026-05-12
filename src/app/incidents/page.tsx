@@ -65,8 +65,7 @@ export default async function IncidentsPage() {
               No Incidents Reported
             </h2>
             <p className="text-gray-600">
-              There are no incident issues yet. When something happens (or you
-              post an update), it will show up here.
+              There are no incident issues yet. Once we document an issue, it will appear here.
             </p>
           </div>
         ) : (
