@@ -19,6 +19,14 @@ interface ServiceData {
   status: 'up' | 'down' | 'degraded';
 }
 
+type UpptimeSummaryItem = {
+  name?: string;
+  slug?: string;
+  status?: string;
+  uptime?: string;
+  time?: number;
+};
+
 type ShieldsBadge = {
   schemaVersion?: number;
   label?: string;
@@ -47,61 +55,39 @@ function getServiceStatusFromUptime(uptimePercent: number): ServiceStatus['statu
 
 async function fetchStatusData(): Promise<ServiceStatus[]> {
   try {
-    // Fetch uptime and response time data for each service
-    const services: Array<{ name: string; id: string }> = [
-      { name: 'Stafflyt Web', id: 'stafflyt-web' },
-      { name: 'Stafflyt Backend', id: 'stafflyt-backend' },
-      { name: 'Stafflyt Email Service', id: 'stafflyt-email-service' },
+    const services: Array<{ name: string; slug: string }> = [
+      { name: 'Stafflyt Web', slug: 'stafflyt-web' },
+      { name: 'Stafflyt Backend', slug: 'stafflyt-backend' },
+      { name: 'Stafflyt Email Service', slug: 'stafflyt-email-service' },
     ];
-    const baseUrl =
-      'https://raw.githubusercontent.com/amah853/status.stafflyt.com/main/api';
 
-    const statusData: ServiceStatus[] = [];
-
-    // For each service, fetch the latest data
-    for (const service of services) {
-      const serviceId = service.id;
-
-      try {
-        // Fetch uptime data
-        const uptimeRes = await fetch(`${baseUrl}/${serviceId}/uptime.json`, {
-          cache: 'no-store',
-        });
-        if (!uptimeRes.ok) throw new Error(`Uptime fetch failed: ${uptimeRes.status}`);
-        const uptimeData = (await uptimeRes.json()) as ShieldsBadge;
-        const uptimeNumber = parseFirstNumber(uptimeData.message);
-        const uptimePercentage = clamp(uptimeNumber ?? 0, 0, 100);
-
-        // Fetch response time data
-        const responseRes = await fetch(
-          `${baseUrl}/${serviceId}/response-time.json`,
-          { cache: 'no-store' }
-        );
-        if (!responseRes.ok) throw new Error(`Response time fetch failed: ${responseRes.status}`);
-        const responseData = (await responseRes.json()) as ShieldsBadge;
-        const responseTimeNumber = parseFirstNumber(responseData.message);
-        const responseTime = Math.max(0, Math.round(responseTimeNumber ?? 0));
-
-        statusData.push({
-          name: service.name,
-          status: getServiceStatusFromUptime(uptimePercentage),
-          lastUpdate: new Date().toISOString(),
-          uptime: uptimePercentage,
-          responseTime,
-        });
-      } catch (error) {
-        console.error(`Error fetching data for ${service.name}:`, error);
-        statusData.push({
-          name: service.name,
-          status: 'down',
-          lastUpdate: new Date().toISOString(),
-          uptime: 0,
-          responseTime: 0,
-        });
-      }
+    const summaryRes = await fetch('/api/summary', { cache: 'no-store' });
+    if (!summaryRes.ok) {
+      throw new Error(`Summary fetch failed: ${summaryRes.status}`);
     }
 
-    return statusData;
+    const summary = (await summaryRes.json()) as UpptimeSummaryItem[];
+
+    return services.map((service) => {
+      const item = summary.find((s) => s.slug === service.slug);
+      const uptimePercentage = clamp(parseFirstNumber(item?.uptime) ?? 0, 0, 100);
+      const responseTime = Math.max(0, Math.round(item?.time ?? 0));
+
+      const statusFromUpptime =
+        item?.status === 'up'
+          ? 'up'
+          : item?.status === 'down'
+            ? 'down'
+            : null;
+
+      return {
+        name: service.name,
+        status: statusFromUpptime ?? getServiceStatusFromUptime(uptimePercentage),
+        lastUpdate: new Date().toISOString(),
+        uptime: uptimePercentage,
+        responseTime,
+      };
+    });
   } catch (error) {
     console.error('Error fetching status data:', error);
     return [];
@@ -135,6 +121,12 @@ function Navigation() {
               className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-primary transition-colors"
             >
               Status
+            </Link>
+            <Link
+              href="/incidents"
+              className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-primary transition-colors"
+            >
+              Incidents
             </Link>
             <Link
               href="https://stafflyt.com"
@@ -177,6 +169,13 @@ function Navigation() {
               onClick={() => setIsOpen(false)}
             >
               Status
+            </Link>
+            <Link
+              href="/incidents"
+              className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-primary transition-colors"
+              onClick={() => setIsOpen(false)}
+            >
+              Incidents
             </Link>
             <Link
               href="https://stafflyt.com"
@@ -282,17 +281,73 @@ function ServiceCard({ service }: { service: ServiceStatus }) {
   );
 }
 
-function IncidentBanner() {
+function IncidentBanner({
+  services,
+  loading,
+}: {
+  services: ServiceStatus[];
+  loading: boolean;
+}) {
+  const hasDown = services.some((s) => s.status === 'down');
+  const hasDegraded = services.some((s) => s.status === 'degraded');
+
+  const variant = loading
+    ? 'loading'
+    : hasDown
+      ? 'down'
+      : hasDegraded
+        ? 'degraded'
+        : 'up';
+
+  const config =
+    variant === 'down'
+      ? {
+          wrapper:
+            'rounded-xl bg-gradient-to-r from-error/10 to-error/5 border border-error/20 p-4',
+          icon: <AlertCircle className="h-5 w-5 text-error flex-shrink-0" />,
+          title: 'Service Disruption',
+          titleClass: 'text-sm font-medium text-error',
+          message: 'One or more Stafflyt services are currently unavailable',
+          messageClass: 'text-xs text-error/70',
+        }
+      : variant === 'degraded'
+        ? {
+            wrapper:
+              'rounded-xl bg-gradient-to-r from-warning/10 to-warning/5 border border-warning/20 p-4',
+            icon: <AlertCircle className="h-5 w-5 text-warning flex-shrink-0" />,
+            title: 'Degraded Performance',
+            titleClass: 'text-sm font-medium text-warning',
+            message: 'Some Stafflyt services may be slower than usual',
+            messageClass: 'text-xs text-warning/70',
+          }
+        : variant === 'loading'
+          ? {
+              wrapper:
+                'rounded-xl bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 p-4',
+              icon: <Clock className="h-5 w-5 text-primary flex-shrink-0" />,
+              title: 'Checking Status',
+              titleClass: 'text-sm font-medium text-primary',
+              message: 'Fetching the latest service health data',
+              messageClass: 'text-xs text-primary/70',
+            }
+          : {
+              wrapper:
+                'rounded-xl bg-gradient-to-r from-success/10 to-success/5 border border-success/20 p-4',
+              icon: <CheckCircle2 className="h-5 w-5 text-success flex-shrink-0" />,
+              title: 'All Systems Operational',
+              titleClass: 'text-sm font-medium text-success',
+              message: 'All Stafflyt services are running normally',
+              messageClass: 'text-xs text-success/70',
+            };
+
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6">
-      <div className="rounded-xl bg-gradient-to-r from-success/10 to-success/5 border border-success/20 p-4">
+      <div className={config.wrapper}>
         <div className="flex items-center gap-3">
-          <CheckCircle2 className="h-5 w-5 text-success flex-shrink-0" />
+          {config.icon}
           <div>
-            <p className="text-sm font-medium text-success">All Systems Operational</p>
-            <p className="text-xs text-success/70">
-              All Stafflyt services are running normally
-            </p>
+            <p className={config.titleClass}>{config.title}</p>
+            <p className={config.messageClass}>{config.message}</p>
           </div>
         </div>
       </div>
@@ -348,6 +403,7 @@ export default function HomePage() {
       try {
         const data = await fetchStatusData();
         setServices(data);
+        setPageLastUpdated(new Date().toLocaleString());
       } catch (error) {
         console.error('Failed to load status data:', error);
       } finally {
@@ -367,7 +423,7 @@ export default function HomePage() {
       <Navigation />
 
       <main className="min-h-[calc(100vh-4rem)] pb-16">
-        <IncidentBanner />
+        <IncidentBanner services={services} loading={loading} />
 
         {/* Hero Section */}
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
@@ -419,22 +475,36 @@ export default function HomePage() {
                 <div>
                   <h3 className="font-semibold text-dark mb-2">Monitoring</h3>
                   <p className="text-gray-600 text-sm">
-                    We monitor our services every 5 minutes to ensure optimal
-                    performance and reliability.
+                    This page automatically updates every five minutes. 
+                    Next refresh at {(() => {
+                      const now = new Date();
+                      const ms = now.getTime();
+                      const fiveMin = 5 * 60 * 1000;
+                      const next = new Date(Math.ceil(ms / fiveMin) * fiveMin);
+                      return next.toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      });
+                    })()}.
                   </p>
                 </div>
                 <div>
                   <h3 className="font-semibold text-dark mb-2">Notifications</h3>
                   <p className="text-gray-600 text-sm">
-                    Follow our GitHub for updates on service status and incident
-                    reports.
+                    Need critical alerts? Contact us for real-time
+                    notifications via email for your organization.
                   </p>
                 </div>
                 <div>
                   <h3 className="font-semibold text-dark mb-2">Support</h3>
                   <p className="text-gray-600 text-sm">
-                    For issues or questions, please contact us through our main
-                    site or GitHub.
+                    For issues or questions, don't hesistate to contact our support team at{' '}
+                    <a
+                      href="mailto:support@stafflyt.com"
+                      className="text-primary hover:underline"
+                    >
+                      support@stafflyt.com
+                    </a>
                   </p>
                 </div>
               </div>

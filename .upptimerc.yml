@@ -15,8 +15,8 @@ status-website:
   # The monitoring system still uses Upptime for checking services, but the frontend is custom
   # See src/ folder for the Next.js application
   cname: status.stafflyt.com
-  logoUrl: https://raw.githubusercontent.com/amah853/stafflyt/main/public/stafflyt.svg
-  faviconUrl: https://www.stafflyt.com/stafflyt.svg
+  logoUrl: https://www.stafflyt.com/stafflyt.svg
+  faviconUrl: https://www.stafflyt.com/stafflyt-favicon.svg
   name: Stafflyt
   title: Stafflyt Status
   introTitle: "System Status"

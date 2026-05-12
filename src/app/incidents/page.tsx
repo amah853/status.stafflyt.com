@@ -1,10 +1,23 @@
-'use client';
-
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, AlertCircle } from 'lucide-react';
+import { ArrowLeft, AlertCircle, ExternalLink, MessageSquareText } from 'lucide-react';
+import { fetchRecentIssues } from '@/app/_lib/github';
 
-export default function IncidentsPage() {
+function formatDateTime(value: string): string {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+export default async function IncidentsPage() {
+  const issues = await fetchRecentIssues({ limit: 25, revalidateSeconds: 60 });
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-sky-50/30">
       {/* Navigation */}
@@ -14,7 +27,7 @@ export default function IncidentsPage() {
             <Link href="/" className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-sky-500 to-cyan-500">
                 <Image
-                  src="https://raw.githubusercontent.com/amah853/stafflyt/main/public/stafflyt.svg"
+                  src="https://www.stafflyt.com/stafflyt.svg"
                   alt="Stafflyt"
                   width={20}
                   height={20}
@@ -41,22 +54,90 @@ export default function IncidentsPage() {
             Incident History
           </h1>
           <p className="text-lg text-gray-600">
-            Historical records of service incidents and resolutions
+            Recent incidents and status updates
           </p>
         </div>
 
-        {/* Empty State */}
-        <div className="rounded-2xl bg-white/50 backdrop-blur-sm ring-1 ring-gray-200/50 p-12 text-center">
-          <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-semibold text-dark mb-2">
-            No Incidents Reported
-          </h2>
-          <p className="text-gray-600">
-            All systems have been operating normally. Great job!
-          </p>
-        </div>
+        {issues.length === 0 ? (
+          <div className="rounded-2xl bg-white/50 backdrop-blur-sm ring-1 ring-gray-200/50 p-12 text-center">
+            <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h2 className="text-2xl font-semibold text-dark mb-2">
+              No Incidents Reported
+            </h2>
+            <p className="text-gray-600">
+              There are no incident issues yet. When something happens (or you
+              post an update), it will show up here.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {issues.map((issue) => (
+              <div
+                key={issue.number}
+                className="rounded-2xl bg-white/50 backdrop-blur-sm ring-1 ring-gray-200/50 p-6 shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 hover:ring-primary/20"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${
+                          issue.state === 'open'
+                            ? 'bg-warning/10 text-warning ring-warning/20'
+                            : 'bg-success/10 text-success ring-success/20'
+                        }`}
+                      >
+                        {issue.state === 'open' ? 'Open' : 'Resolved'}
+                      </span>
+                      <span className="text-sm text-gray-500">#{issue.number}</span>
+                      {issue.comments > 0 ? (
+                        <span className="inline-flex items-center gap-1 text-sm text-gray-500">
+                          <MessageSquareText className="h-4 w-4" />
+                          {issue.comments}
+                        </span>
+                      ) : null}
+                    </div>
 
-        {/* Timeline would go here when there are incidents */}
+                    <h2 className="text-xl font-semibold text-dark truncate">
+                      <Link
+                        href={`/incidents/${issue.number}`}
+                        className="hover:text-primary transition-colors"
+                      >
+                        {issue.title}
+                      </Link>
+                    </h2>
+
+                    <p className="mt-2 text-sm text-gray-600">
+                      Updated {formatDateTime(issue.updated_at)}
+                    </p>
+
+                    {issue.labels?.length ? (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {issue.labels.slice(0, 6).map((label) => (
+                          <span
+                            key={`${issue.number}:${label.name}`}
+                            className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700 ring-1 ring-gray-200"
+                          >
+                            {label.name}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <Link
+                    href={issue.html_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0 inline-flex items-center gap-2 rounded-xl bg-white/60 px-3 py-2 text-sm font-medium text-gray-700 ring-1 ring-gray-200/50 hover:text-primary hover:ring-primary/20 transition-colors"
+                  >
+                    GitHub
+                    <ExternalLink className="h-4 w-4" />
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </main>
 
       {/* Footer */}
@@ -66,7 +147,7 @@ export default function IncidentsPage() {
             <div className="flex items-center gap-2">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-sky-500 to-cyan-500">
                 <Image
-                  src="https://raw.githubusercontent.com/amah853/stafflyt/main/public/stafflyt.svg"
+                  src="https://www.stafflyt.com/stafflyt.svg"
                   alt="Stafflyt"
                   width={14}
                   height={14}

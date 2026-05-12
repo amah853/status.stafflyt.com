@@ -14,7 +14,7 @@ export default function NotFound() {
             <Link href="/" className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-sky-500 to-cyan-500">
                 <Image
-                  src="https://raw.githubusercontent.com/amah853/stafflyt/main/public/stafflyt.svg"
+                  src="https://www.stafflyt.com/stafflyt.svg"
                   alt="Stafflyt"
                   width={20}
                   height={20}
