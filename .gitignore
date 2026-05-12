@@ -1,2 +1,23 @@
 .DS_STORE
 .env
+.env.local
+.env.*.local
+
+# Next.js
+.next/
+out/
+node_modules/
+npm-debug.log
+yarn-error.log
+.pnpm-debug.log
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+.DS_Store
