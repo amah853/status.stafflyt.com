@@ -1,5 +1,4 @@
 {
   "framework": null,
-  "buildCommand": "echo \"No build step required for Upptime data repository\"",
   "outputDirectory": "."
 }
